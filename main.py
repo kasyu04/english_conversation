@@ -17,6 +17,8 @@ from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import functions as ft
 import constants as ct
+from langchain_community.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
 
 
 # 各種設定
@@ -59,6 +61,13 @@ if "messages" not in st.session_state:
     # モード「日常英会話」用のChain作成
     st.session_state.chain_basic_conversation = ft.create_chain(ct.SYSTEM_TEMPLATE_BASIC_CONVERSATION)
 
+# ベクターストアの設定
+embeddings = OpenAIEmbeddings()
+db = Chroma.from_documents(docs, embedding=embeddings)
+
+# 検索スコアの閾値を設定
+retriever = db.as_retriever(search_kwargs={"k": 5, "score_threshold": 0.8})
+
 # 初期表示
 # col1, col2, col3, col4 = st.columns([1, 1, 1, 2])
 # 提出課題用
@@ -93,6 +102,9 @@ with col3:
     st.session_state.pre_mode = st.session_state.mode
 with col4:
     st.session_state.englv = st.selectbox(label="英語レベル", options=ct.ENGLISH_LEVEL_OPTION, label_visibility="collapsed")
+
+# タグ入力フィールド
+st.session_state.tags = st.text_input("タグを入力してください（例：日付、テーマ）")
 
 with st.chat_message("assistant", avatar="images/ai_icon.jpg"):
     st.markdown("こちらは生成AIによる音声英会話の練習アプリです。何度も繰り返し練習し、英語力をアップさせましょう。")
@@ -199,6 +211,9 @@ if st.session_state.start_flg:
             transcript = ft.transcribe_audio(audio_input_file_path)
             audio_input_text = transcript.text
 
+        # 不要な発話を削除
+        audio_input_text = ft.remove_filler_words(audio_input_text)
+
         # 音声入力テキストの画面表示
         with st.chat_message("user", avatar=ct.USER_ICON_PATH):
             st.markdown(audio_input_text)
@@ -251,6 +266,9 @@ if st.session_state.start_flg:
             # 音声入力ファイルから文字起こしテキストを取得
             transcript = ft.transcribe_audio(audio_input_file_path)
             audio_input_text = transcript.text
+
+        # 不要な発話を削除
+        audio_input_text = ft.remove_filler_words(audio_input_text)
 
         # AIメッセージとユーザーメッセージの画面表示
         with st.chat_message("assistant", avatar=ct.AI_ICON_PATH):

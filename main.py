@@ -19,7 +19,6 @@ import functions as ft
 import constants as ct
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.document_loaders.csv_loader import CSVLoader
 
 
 # 各種設定
@@ -61,14 +60,6 @@ if "messages" not in st.session_state:
 
     # モード「日常英会話」用のChain作成
     st.session_state.chain_basic_conversation = ft.create_chain(ct.SYSTEM_TEMPLATE_BASIC_CONVERSATION)
-
-# ドキュメントデータのロード
-try:
-    loader = CSVLoader(file_path="data/documents.csv", encoding='utf-8')
-    docs = loader.load()
-except Exception as e:
-    st.error(f"Error loading CSV file: {e}")
-    st.stop()
 
 # ベクターストアの設定
 embeddings = OpenAIEmbeddings()

@@ -63,8 +63,12 @@ if "messages" not in st.session_state:
     st.session_state.chain_basic_conversation = ft.create_chain(ct.SYSTEM_TEMPLATE_BASIC_CONVERSATION)
 
 # ドキュメントデータのロード
-loader = CSVLoader(file_path="data/documents.csv", encoding='utf-8')
-docs = loader.load()
+try:
+    loader = CSVLoader(file_path="data/documents.csv", encoding='utf-8')
+    docs = loader.load()
+except Exception as e:
+    st.error(f"Error loading CSV file: {e}")
+    st.stop()
 
 # ベクターストアの設定
 embeddings = OpenAIEmbeddings()
@@ -247,7 +251,7 @@ if st.session_state.start_flg:
 
         # ユーザー入力値とLLMからの回答をメッセージ一覧に追加
         st.session_state.messages.append({"role": "user", "content": audio_input_text})
-        st.session_state.messages.append({"role": "assistant", "content": llm_response})
+        st.session_state.messages.append({"role": "assistant", "content": llm_response)
 
 
     # モード：「シャドーイング」

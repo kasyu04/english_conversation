@@ -233,7 +233,7 @@ if st.session_state.start_flg:
 
         # ユーザー入力値とLLMからの回答をメッセージ一覧に追加
         st.session_state.messages.append({"role": "user", "content": audio_input_text})
-        st.session_state.messages.append({"role": "assistant", "content": llm_response)
+        st.session_state.messages.append({"role": "assistant", "content": llm_response})
 
 
     # モード：「シャドーイング」

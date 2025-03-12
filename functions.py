@@ -1,3 +1,4 @@
+お気に入りのアプリの中から AI を直接お試しください。 … Gemini を使用して下書きを生成したり、コンテンツの質を高めたりすることができます。さらに、Gemini Advanced では Google の次世代 AI にアクセスできます。1 か月間、￥2,900 ￥0
 import streamlit as st
 import os
 import time
@@ -18,14 +19,6 @@ from langchain.memory import ConversationSummaryBufferMemory
 from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationChain
 import constants as ct
-from langchain_community.document_loaders.csv_loader import CSVLoader
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
-from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
-from langchain.chains import RetrievalQA
-from langchain.llms import OpenAI
-from datetime import datetime
 
 def record_audio(audio_input_file_path):
     """
@@ -63,23 +56,7 @@ def transcribe_audio(audio_input_file_path):
     # 音声入力ファイルを削除
     os.remove(audio_input_file_path)
 
-    # 不要な発話を削除
-    cleaned_text = remove_filler_words(transcript.text)
-
-    return cleaned_text
-
-def remove_filler_words(text):
-    """
-    不要な発話を削除する関数
-    Args:
-        text: 文字起こしされたテキスト
-    Returns:
-        cleaned_text: 不要な発話が削除されたテキスト
-    """
-    filler_words = ["えー", "あのー", "うーん", "えっと"]
-    for word in filler_words:
-        text = text.replace(word, "")
-    return text
+    return transcript
 
 def save_to_wav(llm_response_audio, audio_output_file_path):
     """
@@ -198,69 +175,3 @@ def create_evaluation():
     llm_response_evaluation = st.session_state.chain_evaluation.predict(input="")
 
     return llm_response_evaluation
-
-def get_llm_response(chat_message, tags=None):
-    """
-    LLMからの回答を取得する関数
-    Args:
-        chat_message: ユーザーからのメッセージ
-        tags: タグ情報（例：日付、テーマなど）
-    Returns:
-        llm_response: LLMからの回答
-    """
-    # ベクターストアの設定
-    loader = CSVLoader(file_path="data/documents.csv", encoding='utf-8')
-    docs = loader.load()
-
-    docs_contents = []
-    for doc in docs:
-        docs_contents.append(doc.page_content)
-
-    embeddings = OpenAIEmbeddings()
-    db = Chroma.from_documents(docs, embedding=embeddings)
-
-    retriever = db.as_retriever(search_kwargs={"k": 5, "score_threshold": 0.8})  # ここで検索スコアの閾値を設定
-    bm25_retriever = BM25Retriever.from_texts(
-        docs_contents,
-        preprocess_func=preprocess_func,
-        k=5  # ここで関連ドキュメントの数を設定
-    )
-    ensemble_retriever = EnsembleRetriever(
-        retrievers=[bm25_retriever, retriever],
-        weights=[0.5, 0.5]
-    )
-
-    # システムメッセージテンプレートを使用
-    system_message = ct.SYSTEM_PROMPT_TEMPLATE.format(query=chat_message)
-
-    # RetrievalQAの設定
-    llm = OpenAI(model_name="gpt-4", temperature=0.5)
-    qa_chain = RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="stuff",
-        retriever=ensemble_retriever,
-        return_source_documents=True,
-        system_message=system_message
-    )
-
-    # ユーザーメッセージに対する回答を取得
-    result = qa_chain({"query": chat_message})
-    llm_response = result["result"]
-
-    # タグ情報を追加
-    if tags:
-        llm_response += f"\n\n【タグ情報】\n日付: {tags.get('date', '不明')}\nテーマ: {tags.get('theme', '不明')}"
-
-    return llm_response
-
-def add_tags_to_message(message, tags):
-    """
-    メッセージにタグ情報を追加する関数
-    Args:
-        message: メッセージ内容
-        tags: タグ情報（例：日付、テーマなど）
-    Returns:
-        tagged_message: タグ情報が追加されたメッセージ
-    """
-    tagged_message = f"{message}\n\n【タグ情報】\n日付: {tags.get('date', '不明')}\nテーマ: {tags.get('theme', '不明')}"
-    return tagged_message

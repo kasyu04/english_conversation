@@ -17,6 +17,9 @@ from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import functions as ft
 import constants as ct
+from langchain_community.vectorstores import Chroma
+from langchain_openai import OpenAIEmbeddings
+from langchain_community.document_loaders.csv_loader import CSVLoader
 
 
 # 各種設定
@@ -58,6 +61,21 @@ if "messages" not in st.session_state:
 
     # モード「日常英会話」用のChain作成
     st.session_state.chain_basic_conversation = ft.create_chain(ct.SYSTEM_TEMPLATE_BASIC_CONVERSATION)
+
+# ドキュメントデータのロード
+try:
+    loader = CSVLoader(file_path="data/documents.csv", encoding='utf-8')
+    docs = loader.load()
+except Exception as e:
+    st.error(f"Error loading CSV file: {e}")
+    st.stop()
+
+# ベクターストアの設定
+embeddings = OpenAIEmbeddings()
+db = Chroma.from_documents(docs, embedding=embeddings)
+
+# 検索スコアの閾値を設定
+retriever = db.as_retriever(search_kwargs={"k": 5, "score_threshold": 0.8})
 
 # 初期表示
 # col1, col2, col3, col4 = st.columns([1, 1, 1, 2])
@@ -164,10 +182,13 @@ if st.session_state.start_flg:
             st.session_state.messages.append({"role": "assistant", "content": st.session_state.problem})
             st.session_state.messages.append({"role": "user", "content": st.session_state.dictation_chat_message})
             
+            # 不要な言葉を削除
+            cleaned_text = ft.remove_filler_words(st.session_state.dictation_chat_message)
+
             with st.spinner('評価結果の生成中...'):
                 system_template = ct.SYSTEM_TEMPLATE_EVALUATION.format(
                     llm_text=st.session_state.problem,
-                    user_text=st.session_state.dictation_chat_message
+                    user_text=cleaned_text
                 )
                 st.session_state.chain_evaluation = ft.create_chain(system_template)
                 # 問題文と回答を比較し、評価結果の生成を指示するプロンプトを作成
@@ -199,6 +220,9 @@ if st.session_state.start_flg:
             transcript = ft.transcribe_audio(audio_input_file_path)
             audio_input_text = transcript.text
 
+        # 不要な言葉を削除
+        audio_input_text = ft.remove_filler_words(audio_input_text)
+
         # 音声入力テキストの画面表示
         with st.chat_message("user", avatar=ct.USER_ICON_PATH):
             st.markdown(audio_input_text)
@@ -227,7 +251,7 @@ if st.session_state.start_flg:
 
         # ユーザー入力値とLLMからの回答をメッセージ一覧に追加
         st.session_state.messages.append({"role": "user", "content": audio_input_text})
-        st.session_state.messages.append({"role": "assistant", "content": llm_response})
+        st.session_state.messages.append({"role": "assistant", "content": llm_response)
 
 
     # モード：「シャドーイング」
@@ -251,6 +275,9 @@ if st.session_state.start_flg:
             # 音声入力ファイルから文字起こしテキストを取得
             transcript = ft.transcribe_audio(audio_input_file_path)
             audio_input_text = transcript.text
+
+        # 不要な言葉を削除
+        audio_input_text = ft.remove_filler_words(audio_input_text)
 
         # AIメッセージとユーザーメッセージの画面表示
         with st.chat_message("assistant", avatar=ct.AI_ICON_PATH):

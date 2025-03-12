@@ -18,6 +18,7 @@ from langchain.memory import ConversationSummaryBufferMemory
 from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationChain
 import constants as ct
+import re
 
 def record_audio(audio_input_file_path):
     """
@@ -174,3 +175,16 @@ def create_evaluation():
     llm_response_evaluation = st.session_state.chain_evaluation.predict(input="")
 
     return llm_response_evaluation
+
+def remove_filler_words(text):
+    """
+    不要な言葉を削除する関数
+    Args:
+        text: 文字起こしされたテキスト
+    Returns:
+        cleaned_text: 不要な言葉が削除されたテキスト
+    """
+    filler_words = ["えー", "あのー", "うーん", "えっと", "まあ", "そのー"]
+    pattern = re.compile(r'\b(?:' + '|'.join(filler_words) + r')\b')
+    cleaned_text = pattern.sub('', text)
+    return cleaned_text

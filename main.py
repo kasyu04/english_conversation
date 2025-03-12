@@ -1,4 +1,3 @@
-お気に入りのアプリの中から AI を直接お試しください。 … Gemini を使用して下書きを生成したり、コンテンツの質を高めたりすることができます。さらに、Gemini Advanced では Google の次世代 AI にアクセスできます。1 か月間、￥2,900 ￥0
 import streamlit as st
 import os
 import time

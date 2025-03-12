@@ -17,9 +17,6 @@ from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
 import functions as ft
 import constants as ct
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.document_loaders.csv_loader import CSVLoader
 
 
 # 各種設定
@@ -61,21 +58,6 @@ if "messages" not in st.session_state:
 
     # モード「日常英会話」用のChain作成
     st.session_state.chain_basic_conversation = ft.create_chain(ct.SYSTEM_TEMPLATE_BASIC_CONVERSATION)
-
-# ドキュメントデータのロード
-try:
-    loader = CSVLoader(file_path="data/documents.csv", encoding='utf-8')
-    docs = loader.load()
-except Exception as e:
-    st.error(f"Error loading CSV file: {e}")
-    st.stop()
-
-# ベクターストアの設定
-embeddings = OpenAIEmbeddings()
-db = Chroma.from_documents(docs, embedding=embeddings)
-
-# 検索スコアの閾値を設定
-retriever = db.as_retriever(search_kwargs={"k": 5, "score_threshold": 0.8})
 
 # 初期表示
 # col1, col2, col3, col4 = st.columns([1, 1, 1, 2])
@@ -251,7 +233,7 @@ if st.session_state.start_flg:
 
         # ユーザー入力値とLLMからの回答をメッセージ一覧に追加
         st.session_state.messages.append({"role": "user", "content": audio_input_text})
-        st.session_state.messages.append({"role": "assistant", "content": llm_response})
+        st.session_state.messages.append({"role": "assistant", "content": llm_response)
 
 
     # モード：「シャドーイング」
